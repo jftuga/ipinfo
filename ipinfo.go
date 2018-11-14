@@ -36,19 +36,40 @@ import (
 
 func main() {
 	time_start := time.Now()
-	workers := flag.Int("workers", 5, "number of simultaneous workers")
+	workers := flag.Int("workers", 30, "number of simultaneous workers")
 	flag.Parse()
-	ipAddrs, reverseIP := runDNS(*workers, flag.Args())
+	convertedArgs := convertArgs(flag.Args())
+	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
+
 	ipInfo := runIpInfo(*workers, ipAddrs)
 	outputTable(ipInfo, reverseIP)
 	elapsed := time.Since(time_start)
 	fmt.Printf("\nelapsed time: %s\n", elapsed)
 }
 
+func convertArgs(rawArgs []string) []string {
+	cleanArgs := []string{}
+	for entry := range rawArgs {
+		if strings.Contains(rawArgs[entry], "://") { // url
+			slots := strings.SplitN(rawArgs[entry], "/", 4)
+			cleanArgs = append(cleanArgs, slots[2])
+		} else if strings.Contains(rawArgs[entry], "@") { // email
+			slots := strings.SplitN(rawArgs[entry], "@", 2)
+			cleanArgs = append(cleanArgs, slots[1])
+		} else { // just a host name or IP address
+			cleanArgs = append(cleanArgs, rawArgs[entry])
+		}
+	}
+	return cleanArgs
+}
+
 func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string) {
 	table := tablewriter.NewWriter(os.Stdout)
 	table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Loc"})
 	for i, _ := range ipInfo {
+		if strings.Contains(ipInfo[i].Ip, ":") { // skip IPv6
+			continue
+		}
 		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc}
 		table.Append(row)
 	}
@@ -89,7 +110,6 @@ func runDNS(workers int, hostnames []string) ([]string, map[string]string) {
 		}
 		fmt.Printf("\n%s\n\n", errBuilder.String())
 	}
-
 	return ipAddrs, reverseIP
 }
 
