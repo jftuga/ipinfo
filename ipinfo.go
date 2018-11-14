@@ -387,6 +387,12 @@ func callRemoteService(ip string) ipInfoResult {
 		return obj
 	}
 
+	if strings.Contains(string(body), "Rate limit exceeded") {
+		fmt.Println("\nURL error for:", url)
+		fmt.Println(string(body))
+		os.Exit(1)
+	}
+
 	json.Unmarshal(body, &obj)
 	return obj
 }
