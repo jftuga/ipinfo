@@ -76,6 +76,16 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string) {
 	table.Render()
 }
 
+/* https://stackoverflow.com/a/15323988/452281 */
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
 /*
 runDNS will use N number of workers to concurrently query a DNS server for all
 entries in the hostnames slice
@@ -99,6 +109,9 @@ func runDNS(workers int, hostnames []string) ([]string, map[string]string) {
 
 	for _, val := range ipm {
 		for _, ip := range val.addresses {
+			if stringInSlice(ip, ipAddrs) {
+				continue
+			}
 			ipAddrs = append(ipAddrs, ip)
 			reverseIP[ip] = val.hostname
 		}
