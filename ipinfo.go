@@ -109,7 +109,7 @@ func runDNS(workers int, hostnames []string) ([]string, map[string]string) {
 
 	for _, val := range ipm {
 		for _, ip := range val.addresses {
-			if stringInSlice(ip, ipAddrs) {
+			if stringInSlice(ip, ipAddrs) { // skip duplicate IP addresses
 				continue
 			}
 			ipAddrs = append(ipAddrs, ip)
