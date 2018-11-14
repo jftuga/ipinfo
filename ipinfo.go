@@ -28,9 +28,11 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/StefanSchroeder/Golang-Ellipsoid/ellipsoid"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -42,9 +44,19 @@ func main() {
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 
 	ipInfo := runIpInfo(*workers, ipAddrs)
-	outputTable(ipInfo, reverseIP)
+	geo1 := ellipsoid.Init("WGS84", ellipsoid.Degrees, ellipsoid.Mile, ellipsoid.LongitudeIsSymmetric, ellipsoid.BearingIsSymmetric)
+	lat1, lon1 := 37.619002, -122.374843 //SFO
+	lat2, lon2 := 33.942536, -118.408074 //LAX
+	distance, bearing := geo1.To(lat1, lon1, lat2, lon2)
+	localIpInfo := callRemoteService("")
+	fmt.Printf("Distance = %v Bearing = %v\n", distance, bearing)
+
+	outputTable(ipInfo, reverseIP, geo1, localIpInfo.Loc)
 	elapsed := time.Since(time_start)
-	fmt.Printf("\nelapsed time: %s\n", elapsed)
+	fmt.Println("\n")
+	fmt.Printf("your location: %s\n", localIpInfo.Loc)
+	fmt.Printf("elapsed time : %s\n", elapsed)
+
 }
 
 func convertArgs(rawArgs []string) []string {
@@ -63,14 +75,27 @@ func convertArgs(rawArgs []string) []string {
 	return cleanArgs
 }
 
-func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string) {
+func latlon2coord(latlon string) (float64, float64) {
+	slots := strings.Split(latlon, ",")
+	lat, _ := strconv.ParseFloat(slots[0], 64)
+	lon, _ := strconv.ParseFloat(slots[0], 64)
+	return lat, lon
+}
+
+func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, geo1 ellipsoid.Ellipsoid, loc string) {
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Loc"})
+	table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Loc", "Distance"})
 	for i, _ := range ipInfo {
 		if strings.Contains(ipInfo[i].Ip, ":") { // skip IPv6
 			continue
 		}
-		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc}
+
+		lat1, lon1 := latlon2coord(loc)
+		lat2, lon2 := latlon2coord(ipInfo[i].Loc)
+		//fmt.Printf("loc1: %s %s\nloc2: %s %s\n", lat1, lon1, lat2, lon2)
+		distance, _ := geo1.To(lat1, lon1, lat2, lon2)
+		distanceStr := fmt.Sprintf("%.2f", distance)
+		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc, distanceStr}
 		table.Append(row)
 	}
 	table.Render()
@@ -234,23 +259,34 @@ func resolveAllIpInfo(workers int, ipAddrs []string) []ipInfoResult {
 	return iir
 }
 
+func callRemoteService(ip string) ipInfoResult {
+	var obj ipInfoResult
+
+	api := "/json"
+	if 0 == len(ip) {
+		api = "json"
+	}
+	url := "https://ipinfo.io/" + ip + api
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return obj
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return obj
+	}
+
+	json.Unmarshal(body, &obj)
+	return obj
+}
+
 func workIpInfoLookup(workCh chan string, resultCh chan ipInfoResult) {
 	for ip := range workCh {
-		url := "https://ipinfo.io/" + ip + "/json"
-		resp, err := http.Get(url)
-		if err != nil {
-			fmt.Println("error: ", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("error: ", err)
-			return
-		}
-		var obj ipInfoResult
-		json.Unmarshal(body, &obj)
+		obj := callRemoteService(ip)
 		resultCh <- obj
 	}
 }
