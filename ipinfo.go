@@ -29,6 +29,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +41,8 @@ func main() {
 	time_start := time.Now()
 
 	workers := flag.Int("workers", 30, "number of simultaneous workers")
+	tableAutoMerge := flag.Bool("merge", false, "merge identical hosts")
+
 	flag.Parse()
 	convertedArgs := convertArgs(flag.Args())
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
@@ -47,7 +50,7 @@ func main() {
 	ipInfo := runIpInfo(*workers, ipAddrs)
 
 	localIpInfo := callRemoteService("")
-	outputTable(ipInfo, reverseIP, localIpInfo.Loc)
+	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
 
 	elapsed := time.Since(time_start)
 	fmt.Println("\n")
@@ -167,22 +170,41 @@ func latlon2coord(latlon string) (float64, float64) {
 	return lat, lon
 }
 
-func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string) {
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Loc", "Distance"})
+func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string, merge bool) {
+	var allRows [][]string
+
+	var distanceStr = ""
+
 	for i, _ := range ipInfo {
 		if strings.Contains(ipInfo[i].Ip, ":") { // skip IPv6
 			continue
 		}
-
-		lat1, lon1 := latlon2coord(loc)
-		lat2, lon2 := latlon2coord(ipInfo[i].Loc)
-		//fmt.Printf("loc1: %v %v\nloc2: %v %v\n", lat1, lon1, lat2, lon2)
-		distance, _ := vincentyDistance(Coord{lat1, lon1}, Coord{lat2, lon2})
-		distanceStr := fmt.Sprintf("%.2f", distance)
+		if ipInfo[i].Loc == "37.7510,-97.8220" || len(ipInfo[i].Loc) == 0 { // https://en.wikipedia.org/wiki/Cheney_Reservoir#IP_Address_Geo_Location
+			ipInfo[i].Loc = "N/A"
+			ipInfo[i].City = "N/A"
+			ipInfo[i].Region = "N/A"
+			distanceStr = "N/A"
+		} else {
+			lat1, lon1 := latlon2coord(loc)
+			lat2, lon2 := latlon2coord(ipInfo[i].Loc)
+			//fmt.Printf("loc1: %v %v\nloc2: %v %v\n", lat1, lon1, lat2, lon2)
+			distance, _ := vincentyDistance(Coord{lat1, lon1}, Coord{lat2, lon2})
+			distanceStr = fmt.Sprintf("%.2f", distance)
+		}
 		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc, distanceStr}
-		table.Append(row)
+		allRows = append(allRows, row)
 	}
+
+	sort.Slice(allRows, func(a, b int) bool {
+		return allRows[a][0] < allRows[b][0]
+	})
+
+	table := tablewriter.NewWriter(os.Stdout)
+	table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Loc", "Distance"})
+	if merge == true {
+		table.SetAutoMergeCells(true)
+	}
+	table.AppendBulk(allRows)
 	table.Render()
 }
 
