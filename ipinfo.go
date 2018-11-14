@@ -25,7 +25,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"net"
 	"net/http"
 	"os"
@@ -33,10 +32,36 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"vincenty"
 
 	"github.com/olekukonko/tablewriter"
 )
 
+// For a given DNS query, one hostname can return multiple IP addresses
+type dnsResponse struct {
+	hostname  string
+	addresses []string
+	err       error
+}
+
+// This is the format returned by: https://ipinfo.io/w.x.y.z/json
+type ipInfoResult struct {
+	Ip       string
+	Hostname string
+	City     string
+	Region   string
+	Country  string
+	Loc      string
+	Postal   string
+	Org      string
+	Distance float32
+	ErrMsg   error
+}
+
+/*
+main will parse command line arguments, get the IP addresses for all command line args,
+retreive the IP info for each of these IP addresses, and then output the results
+*/
 func main() {
 	time_start := time.Now()
 
@@ -46,19 +71,28 @@ func main() {
 	flag.Parse()
 	convertedArgs := convertArgs(flag.Args())
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
-
-	ipInfo := runIpInfo(*workers, ipAddrs)
+	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
 
 	localIpInfo := callRemoteService("")
 	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
+	//outputTable(ipInfo, reverseIP, "33.9410,-83.4341", *tableAutoMerge)
 
 	elapsed := time.Since(time_start)
 	fmt.Println("\n")
 	fmt.Printf("your location: %s\n", localIpInfo.Loc)
+	//fmt.Printf("your location: %s\n", "33.9410,-83.4341")
 	fmt.Printf("elapsed time : %s\n", elapsed)
-
 }
 
+/*
+convertArgs will truncate a URL or email address to just the hostname
+
+Args:
+	rawArgs: a slice of entries that can be any of the following: URL, email, hostname, IP address
+
+Returns:
+	the same slice with entries shortened to just hostname or IP address
+*/
 func convertArgs(rawArgs []string) []string {
 	cleanArgs := []string{}
 	for entry := range rawArgs {
@@ -75,94 +109,15 @@ func convertArgs(rawArgs []string) []string {
 	return cleanArgs
 }
 
-// Coord represents a geographic coordinate.
-type Coord struct {
-	lat float64
-	lon float64
-}
+/*
+latlon2coord converts a string such as "36.0525,-79.107" to a tuple of floats
 
-// these constants are used for vincentyDistance()
-const a = 6378137
-const b = 6356752.3142
-const f = 1 / 298.257223563 // WGS-84 ellipsiod
+Args:
+	latlon: a string in "lat, lon" format
 
-// ported from JavaScript:
-// http://www.5thandpenn.com/GeoMaps/GMapsExamples/distanceComplete2.html
-func vincentyDistance(p1, p2 Coord) (float64, bool) {
-
-	// convert from degrees to radians
-	p1.lat = p1.lat * math.Pi / 180
-	p1.lon = p1.lon * math.Pi / 180
-	p2.lat = p2.lat * math.Pi / 180
-	p2.lon = p2.lon * math.Pi / 180
-
-	L := p2.lon - p1.lon
-
-	U1 := math.Atan((1 - f) * math.Tan(p1.lat))
-	U2 := math.Atan((1 - f) * math.Tan(p2.lat))
-
-	sinU1 := math.Sin(U1)
-	cosU1 := math.Cos(U1)
-	sinU2 := math.Sin(U2)
-	cosU2 := math.Cos(U2)
-
-	lambda := L
-	lambdaP := 2 * math.Pi
-	iterLimit := 20
-
-	//fmt.Println(L, U1, U2, sinU1, cosU1, sinU2, cosU2)
-	//fmt.Println(lambda, lambdaP, iterLimit)
-
-	var sinLambda, cosLambda, sinSigma float64
-	var cosSigma, sigma, sinAlpha, cosSqAlpha, cos2SigmaM, C float64
-
-	for {
-		if math.Abs(lambda-lambdaP) > 1e-12 && (iterLimit > 0) {
-			iterLimit -= 1
-		} else {
-			break
-		}
-		sinLambda = math.Sin(lambda)
-		cosLambda = math.Cos(lambda)
-
-		sinSigma = math.Sqrt((cosU2*sinLambda)*(cosU2*sinLambda) + (cosU1*sinU2-sinU1*cosU2*cosLambda)*(cosU1*sinU2-sinU1*cosU2*cosLambda))
-		if sinSigma == 0 {
-			return 0, true // co-incident points
-		}
-		//fmt.Println(sinSigma)
-
-		cosSigma = sinU1*sinU2 + cosU1*cosU2*cosLambda
-		sigma = math.Atan2(sinSigma, cosSigma)
-		sinAlpha = cosU1 * cosU2 * sinLambda / sinSigma
-		cosSqAlpha = 1 - sinAlpha*sinAlpha
-		cos2SigmaM = cosSigma - 2*sinU1*sinU2/cosSqAlpha
-		if math.IsNaN(cos2SigmaM) {
-			cos2SigmaM = 0 // equatorial line: cosSqAlpha=0
-		}
-
-		C = f / 16 * cosSqAlpha * (4 + f*(4-3*cosSqAlpha))
-		lambdaP = lambda
-		lambda = L + (1-C)*f*sinAlpha*(sigma+C*sinSigma*(cos2SigmaM+C*cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)))
-		//fmt.Println(cosSigma, sigma, sinAlpha, cosSqAlpha, cos2SigmaM, C)
-
-		lambda = L + (1-C)*f*sinAlpha*(sigma+C*sinSigma*(cos2SigmaM+C*cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)))
-	}
-	if iterLimit == 0 {
-		return -1, false // formula failed to converge
-	}
-
-	uSq := cosSqAlpha * (a*a - b*b) / (b * b)
-	A := 1 + uSq/16384*(4096+uSq*(-768+uSq*(320-175*uSq)))
-	B := uSq / 1024 * (256 + uSq*(-128+uSq*(74-47*uSq)))
-
-	//fmt.Println(uSq, A, B)
-
-	deltaSigma := B * sinSigma * (cos2SigmaM + B/4*(cosSigma*(-1+2*cos2SigmaM*cos2SigmaM)-B/6*cos2SigmaM*(-3+4*sinSigma*sinSigma)*(-3+4*cos2SigmaM*cos2SigmaM)))
-	s := b * A * (sigma - deltaSigma)
-	miles := s / 1609.344
-	return miles, true
-}
-
+Returns:
+	a tuple in (float64, float64) format
+*/
 func latlon2coord(latlon string) (float64, float64) {
 	slots := strings.Split(latlon, ",")
 	lat, _ := strconv.ParseFloat(slots[0], 64)
@@ -170,6 +125,19 @@ func latlon2coord(latlon string) (float64, float64) {
 	return lat, lon
 }
 
+/*
+outputTable outputs a table with IP info for each command line arg
+It also computes the distance from the local IP address to the remote IP address
+
+Args:
+	ipInfo: a slice of ipInfoResult stucts containing the IP info metadata for each command line argument
+
+	reverseIP: a map where key=IP address, value=hostname
+
+	loc: the local IP addresses location in this format: "lat, lon"
+
+	merge: if -merge was passed in as a command line parameter
+*/
 func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string, merge bool) {
 	var allRows [][]string
 
@@ -188,13 +156,14 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 			lat1, lon1 := latlon2coord(loc)
 			lat2, lon2 := latlon2coord(ipInfo[i].Loc)
 			//fmt.Printf("loc1: %v %v\nloc2: %v %v\n", lat1, lon1, lat2, lon2)
-			distance, _ := vincentyDistance(Coord{lat1, lon1}, Coord{lat2, lon2})
-			distanceStr = fmt.Sprintf("%.2f", distance)
+			miles, _, _ := vincenty.VincentyDistance(vincenty.Coord{lat1, lon1}, vincenty.Coord{lat2, lon2})
+			distanceStr = fmt.Sprintf("%.2f", miles)
 		}
 		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc, distanceStr}
 		allRows = append(allRows, row)
 	}
 
+	// sort rows by input hostname
 	sort.Slice(allRows, func(a, b int) bool {
 		return allRows[a][0] < allRows[b][0]
 	})
@@ -208,7 +177,17 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 	table.Render()
 }
 
-/* https://stackoverflow.com/a/15323988/452281 */
+/* stringInSlice checks to see if a string is located in the given slice
+See also: https://stackoverflow.com/a/15323988/452281
+
+Args:
+	a: the string to search for
+
+	list: a slice of strings
+
+Returns:
+	true if a is in list, false otherwise
+*/
 func stringInSlice(a string, list []string) bool {
 	for _, b := range list {
 		if b == a {
@@ -227,9 +206,9 @@ Args:
 
 	hostnames: a slice containing the hostnames to look up
 
-	Returns:
-		a slice containing IP addresses for all hostnames
-		a map with key=ip, value=hostname
+Returns:
+	a slice containing IP addresses for all hostnames
+	a map with key=ip, value=hostname
 */
 func runDNS(workers int, hostnames []string) ([]string, map[string]string) {
 	ipm, errors := resolveAllDNS(workers, hostnames)
@@ -258,17 +237,18 @@ func runDNS(workers int, hostnames []string) ([]string, map[string]string) {
 	return ipAddrs, reverseIP
 }
 
-func runIpInfo(workers int, ipAddrs []string) []ipInfoResult {
-	allDnsResponses := resolveAllIpInfo(workers, ipAddrs)
-	return allDnsResponses
-}
+/*
+resolveAllDNS returns a slice containing all IP addresses for each given hostname
+The concurrency is limited by the workers values
 
-type dnsResponse struct {
-	hostname  string
-	addresses []string
-	err       error
-}
+Args:
+	workers: the number of concurrent go routines to execute
 
+	hostnames: a slice containing all hostnames (or IP addresses)
+
+Returns:
+	a slice containing the IP info for each given IP address
+*/
 func resolveAllDNS(workers int, hostnames []string) ([]dnsResponse, []error) {
 	workCh := make(chan string)
 	dnsResponseCh := make(chan dnsResponse)
@@ -307,6 +287,14 @@ func resolveAllDNS(workers int, hostnames []string) ([]dnsResponse, []error) {
 	return allDnsReplies, errors
 }
 
+/*
+workDNS
+
+Args:
+	workCh:
+
+	dnsResponseCh:
+*/
 func workDNS(workCh chan string, dnsResponseCh chan dnsResponse) {
 	for hostname := range workCh {
 		addresses, err := net.LookupHost(hostname)
@@ -318,19 +306,18 @@ func workDNS(workCh chan string, dnsResponseCh chan dnsResponse) {
 	}
 }
 
-type ipInfoResult struct {
-	Ip       string
-	Hostname string
-	City     string
-	Region   string
-	Country  string
-	Loc      string
-	Postal   string
-	Org      string
-	Distance float32
-	ErrMsg   error
-}
+/*
+resolveAllIpInfo returns a slice containing all IP info for each IP given in ipAddrs
+The concurrency is limited by the workers values
 
+Args:
+	workers: the number of concurrent go routines to execute
+
+	ipAddrs: a slice of IP addresses
+
+Returns:
+	a slice containing the IP info for each given IP address
+*/
 func resolveAllIpInfo(workers int, ipAddrs []string) []ipInfoResult {
 	workCh := make(chan string)
 	resultsCh := make(chan ipInfoResult)
@@ -366,6 +353,15 @@ func resolveAllIpInfo(workers int, ipAddrs []string) []ipInfoResult {
 	return iir
 }
 
+/*
+callRemoteService issues a web query to ipinfo.io
+The JSON result is converted to an ipInfoResult struct
+Args:
+	ip: an IPv4 address
+
+Returns:
+	an ipInfoResult struct containing the information returned by the service
+*/
 func callRemoteService(ip string) ipInfoResult {
 	var obj ipInfoResult
 
@@ -388,15 +384,48 @@ func callRemoteService(ip string) ipInfoResult {
 	}
 
 	if strings.Contains(string(body), "Rate limit exceeded") {
-		fmt.Println("\nURL error for:", url)
+		fmt.Println("\nError for:", url)
 		fmt.Println(string(body))
 		os.Exit(1)
 	}
 
+	/*
+		bodyStr := `{
+			"ip": "128.192.1.9",
+			"hostname": "dns1.uga.edu",
+			"city": "Athens",
+			"region": "Georgia",
+			"country": "US",
+			"loc": "33.9433,-83.3724",
+			"postal": "30602",
+			"org": "AS36441 University of Georgia"
+		  }
+		  `
+		bodyStr = `{
+			"ip": "152.2.64.93",
+			"hostname": "www.unc.edu",
+			"city": "Chapel Hill",
+			"region": "North Carolina",
+			"country": "US",
+			"loc": "36.0525,-79.1077",
+			"postal": "27599",
+			"org": "AS36850 University of North Carolina at Chapel Hill"
+		  }
+		  `
+		body := []byte(bodyStr)
+	*/
 	json.Unmarshal(body, &obj)
 	return obj
 }
 
+/*
+workIpInfoLookup
+
+Args:
+	workCh:
+
+	resultCh:
+*/
 func workIpInfoLookup(workCh chan string, resultCh chan ipInfoResult) {
 	for ip := range workCh {
 		obj := callRemoteService(ip)
