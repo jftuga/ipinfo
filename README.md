@@ -2,7 +2,7 @@
 Return IP address info including geographic location when given IP address, email address, host name or URL
 
 ```
-macbook:ipinfo jftuga$ ./ipinfo amazon.com cisco.com github.com
+macbook:ipinfo jftuga$ ./ipinfo amazon.com https://cisco.com user@github.com
 
 +------------+-----------------+-----------------------------------------------+---------------------------+---------------+------------+---------+-------------------+----------+
 |   INPUT    |       IP        |                   HOSTNAME                    |            ORG            |     CITY      |   REGION   | COUNTRY |        LOC        | DISTANCE |
