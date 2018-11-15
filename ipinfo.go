@@ -75,13 +75,12 @@ func main() {
 
 	localIpInfo := callRemoteService("")
 	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
-	//outputTable(ipInfo, reverseIP, "33.9410,-83.4341", *tableAutoMerge)
 
 	elapsed := time.Since(time_start)
 	fmt.Println("\n")
-	fmt.Printf("your location: %s\n", localIpInfo.Loc)
-	//fmt.Printf("your location: %s\n", "33.9410,-83.4341")
-	fmt.Printf("elapsed time : %s\n", elapsed)
+	fmt.Printf("your IP addr : %v\n", localIpInfo.Ip)
+	fmt.Printf("your location: %v\n", localIpInfo.Loc)
+	fmt.Printf("elapsed time : %v\n", elapsed)
 }
 
 /*
@@ -177,7 +176,8 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 	table.Render()
 }
 
-/* stringInSlice checks to see if a string is located in the given slice
+/*
+stringInSlice checks to see if a string is located in the given slice
 See also: https://stackoverflow.com/a/15323988/452281
 
 Args:
@@ -389,31 +389,6 @@ func callRemoteService(ip string) ipInfoResult {
 		os.Exit(1)
 	}
 
-	/*
-		bodyStr := `{
-			"ip": "128.192.1.9",
-			"hostname": "dns1.uga.edu",
-			"city": "Athens",
-			"region": "Georgia",
-			"country": "US",
-			"loc": "33.9433,-83.3724",
-			"postal": "30602",
-			"org": "AS36441 University of Georgia"
-		  }
-		  `
-		bodyStr = `{
-			"ip": "152.2.64.93",
-			"hostname": "www.unc.edu",
-			"city": "Chapel Hill",
-			"region": "North Carolina",
-			"country": "US",
-			"loc": "36.0525,-79.1077",
-			"postal": "27599",
-			"org": "AS36850 University of North Carolina at Chapel Hill"
-		  }
-		  `
-		body := []byte(bodyStr)
-	*/
 	json.Unmarshal(body, &obj)
 	return obj
 }
