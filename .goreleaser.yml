@@ -1,0 +1,16 @@
+project_name: ipinfo
+build:
+  main: ipinfo.go
+  binary: ipinfo
+  ldflags: -s -w
+  env:
+    - CGO_ENABLED=0
+  goos:
+    - darwin
+    - linux
+    - windows
+  goarch:
+    - amd64
+    - arm
+release:
+  draft: true
