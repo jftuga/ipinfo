@@ -1,5 +1,7 @@
 # ipinfo
-Return IP address info including geographic location when given IP address, email address, host name or URL
+Return IP address info including geographic location and distance when given IP address, email address, host name or URL
+
+IP geolocation is retrieved from https://ipinfo.io/
 
 ```
 macbook:ipinfo jftuga$ ./ipinfo amazon.com https://cisco.com user@github.com
