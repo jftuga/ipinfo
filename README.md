@@ -3,6 +3,14 @@ Return IP address info including geographic location and distance when given IP 
 
 IP geolocation is retrieved from https://ipinfo.io/
 
+To install:
+
+```
+go get github.com/jftuga/ipinfo
+```
+
+Example:
+
 ```
 macbook:ipinfo jftuga$ ./ipinfo amazon.com https://cisco.com user@github.com
 
