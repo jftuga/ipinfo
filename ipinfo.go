@@ -32,8 +32,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"vincenty"
 
+	"github.com/jftuga/vincenty"
 	"github.com/olekukonko/tablewriter"
 )
 
