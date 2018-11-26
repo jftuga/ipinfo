@@ -30,3 +30,6 @@ your IP addr : w.x.y.z
 your location: A,B
 elapsed time : 450.60ms
 ```
+
+Code discussion: https://old.reddit.com/r/golang/comments/9xd3a3/i_just_finished_my_first_go_program_ipinfo/
+
