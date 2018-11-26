@@ -2,7 +2,8 @@
 PROG = ipinfo
 
 $(PROG) : $(PROG).go
-	go build -ldflags="-s -w" $(PROG).go
+	VERS='$(shell git describe --abbrev=0)' ; \
+	go build -ldflags "-s -w -X main.BuildTime=$$VERS" $(PROG).go
 
 clean:
-	rm $(PROG)
+	rm -f $(PROG) *~ .??*~

@@ -58,6 +58,8 @@ type ipInfoResult struct {
 	ErrMsg   error
 }
 
+var BuildTime string
+
 /*
 main will parse command line arguments, get the IP addresses for all command line args,
 retreive the IP info for each of these IP addresses, and then output the results
@@ -67,8 +69,13 @@ func main() {
 
 	workers := flag.Int("workers", 30, "number of simultaneous workers")
 	tableAutoMerge := flag.Bool("merge", false, "merge identical hosts")
+    versionFlag := flag.Bool("version", false, "display program version")
 
 	flag.Parse()
+    if *versionFlag {
+        fmt.Println("version:", BuildTime)
+        return
+    }
 	convertedArgs := truncateArgParts(flag.Args())
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
