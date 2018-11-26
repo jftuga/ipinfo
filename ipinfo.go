@@ -41,19 +41,19 @@ import (
 type dnsResponse struct {
 	hostname  string
 	addresses []string
-	err       error
+	err	   error
 }
 
 // This is the format returned by: https://ipinfo.io/w.x.y.z/json
 type ipInfoResult struct {
-	Ip       string
+	Ip	   string
 	Hostname string
-	City     string
+	City	 string
 	Region   string
 	Country  string
-	Loc      string
+	Loc	  string
 	Postal   string
-	Org      string
+	Org	  string
 	Distance float32
 	ErrMsg   error
 }
@@ -69,18 +69,24 @@ func main() {
 
 	workers := flag.Int("workers", 30, "number of simultaneous workers")
 	tableAutoMerge := flag.Bool("merge", false, "merge identical hosts")
-    versionFlag := flag.Bool("version", false, "display program version")
+	versionFlag := flag.Bool("version", false, "display program version")
 
 	flag.Parse()
-    if *versionFlag {
-        fmt.Println("version:", BuildTime)
-        return
-    }
-	convertedArgs := truncateArgParts(flag.Args())
+	if *versionFlag {
+		fmt.Println("version:", BuildTime)
+		return
+	}
+
+	localIpInfo := callRemoteService("")
+	args := flag.Args()
+	if len(flag.Args()) == 0 {
+		args = append(args,localIpInfo.Ip)
+	}
+
+	convertedArgs := truncateArgParts(args)
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
 
-	localIpInfo := callRemoteService("")
 	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
 
 	elapsed := time.Since(timeStart)
@@ -144,9 +150,9 @@ func hsin(theta float64) float64 {
 }
 
 // HaversineDistance returns the distance (in miles) between two points of
-//     a given longitude and latitude relatively accurately (using a spherical
-//     approximation of the Earth) through the Haversin Distance Formula for
-//     great arc distance on a sphere with accuracy for small distances
+//	 a given longitude and latitude relatively accurately (using a spherical
+//	 approximation of the Earth) through the Haversin Distance Formula for
+//	 great arc distance on a sphere with accuracy for small distances
 //
 // point coordinates are supplied in degrees and converted into rad. in the func
 //
@@ -349,7 +355,7 @@ func workDNS(workCh chan string, dnsResponseCh chan dnsResponse) {
 		dnsResponseCh <- dnsResponse{
 			hostname:  hostname,
 			addresses: addresses,
-			err:       err,
+			err:	   err,
 		}
 	}
 }
