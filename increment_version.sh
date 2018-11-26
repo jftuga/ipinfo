@@ -103,7 +103,7 @@ esac
 
 NEW=`increment_version -l 0.1.2 ${LEFT}`
 
-read -p "Run: git tag -a v${NEW} (y/n)? " ANS
+read -p "Run: git tag -a v${NEW} ; git push origin v${NEW} (y/n)? " ANS
 if [ "${ANS}" == "y" ] ; then
-    git tag -a v${NEW}
+    git tag -a v${NEW} && git push origin v${NEW}
 fi
