@@ -2,15 +2,25 @@ project_name: ipinfo
 build:
   main: ipinfo.go
   binary: ipinfo
-  ldflags: -s -w
+  ldflags: -s -w -X main.Version="v{{.Version}}-{{.Date}}
   env:
     - CGO_ENABLED=0
   goos:
     - darwin
     - linux
     - windows
+    - freebsd
   goarch:
     - amd64
     - arm
+archive:
+        name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+        format: tar.gz
+        format_overrides:
+                - goos: windows
+                  format: zip
+        replacements:
+                darwin: macOS
+        wrap_in_directory: true
 release:
   draft: true
