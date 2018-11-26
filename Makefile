@@ -2,7 +2,7 @@
 PROG = ipinfo
 
 $(PROG) : $(PROG).go
-	VERS='$(shell git describe --abbrev=0)' ; \
+	VERS='$(shell awk -F/ '/refs\/tags\// {print $$NF}' .git/packed-refs | tail -1)' ; \
 	go build -ldflags "-s -w -X main.BuildTime=$$VERS" $(PROG).go
 
 clean:
