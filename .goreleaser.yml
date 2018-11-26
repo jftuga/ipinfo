@@ -2,7 +2,7 @@ project_name: ipinfo
 build:
   main: ipinfo.go
   binary: ipinfo
-  ldflags: -s -w -X main.Version="v{{.Version}}-{{.Date}}
+  ldflags: -s -w -X main.BuildTime="{{.Version}}"
   env:
     - CGO_ENABLED=0
   goos:
