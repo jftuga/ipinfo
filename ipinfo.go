@@ -25,6 +25,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -33,7 +34,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jftuga/vincenty"
 	"github.com/olekukonko/tablewriter"
 )
 
@@ -58,25 +58,32 @@ type ipInfoResult struct {
 	ErrMsg   error
 }
 
+var BuildTime string
+
 /*
 main will parse command line arguments, get the IP addresses for all command line args,
 retreive the IP info for each of these IP addresses, and then output the results
 */
 func main() {
-	time_start := time.Now()
+	timeStart := time.Now()
 
 	workers := flag.Int("workers", 30, "number of simultaneous workers")
 	tableAutoMerge := flag.Bool("merge", false, "merge identical hosts")
+    versionFlag := flag.Bool("version", false, "display program version")
 
 	flag.Parse()
-	convertedArgs := convertArgs(flag.Args())
+    if *versionFlag {
+        fmt.Println("version:", BuildTime)
+        return
+    }
+	convertedArgs := truncateArgParts(flag.Args())
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
 
 	localIpInfo := callRemoteService("")
 	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
 
-	elapsed := time.Since(time_start)
+	elapsed := time.Since(timeStart)
 	fmt.Println("\n")
 	fmt.Printf("your IP addr : %v\n", localIpInfo.Ip)
 	fmt.Printf("your location: %v\n", localIpInfo.Loc)
@@ -84,7 +91,7 @@ func main() {
 }
 
 /*
-convertArgs will truncate a URL or email address to just the hostname
+truncateArgParts will truncate a URL or email address to just the hostname
 
 Args:
 	rawArgs: a slice of entries that can be any of the following: URL, email, hostname, IP address
@@ -92,20 +99,20 @@ Args:
 Returns:
 	the same slice with entries shortened to just hostname or IP address
 */
-func convertArgs(rawArgs []string) []string {
-	cleanArgs := []string{}
+func truncateArgParts(rawArgs []string) []string {
+	truncateArgs := []string{}
 	for entry := range rawArgs {
 		if strings.Contains(rawArgs[entry], "://") { // url
 			slots := strings.SplitN(rawArgs[entry], "/", 4)
-			cleanArgs = append(cleanArgs, slots[2])
+			truncateArgs = append(truncateArgs, slots[2])
 		} else if strings.Contains(rawArgs[entry], "@") { // email
 			slots := strings.SplitN(rawArgs[entry], "@", 2)
-			cleanArgs = append(cleanArgs, slots[1])
+			truncateArgs = append(truncateArgs, slots[1])
 		} else { // just a host name or IP address
-			cleanArgs = append(cleanArgs, rawArgs[entry])
+			truncateArgs = append(truncateArgs, rawArgs[entry])
 		}
 	}
-	return cleanArgs
+	return truncateArgs
 }
 
 /*
@@ -119,9 +126,50 @@ Returns:
 */
 func latlon2coord(latlon string) (float64, float64) {
 	slots := strings.Split(latlon, ",")
-	lat, _ := strconv.ParseFloat(slots[0], 64)
-	lon, _ := strconv.ParseFloat(slots[1], 64)
+	lat, err := strconv.ParseFloat(slots[0], 64)
+	if err != nil {
+		fmt.Println("Error converting latitude to float for:", latlon)
+	}
+	lon, err := strconv.ParseFloat(slots[1], 64)
+	if err != nil {
+		fmt.Println("Error converting longitude to float for:", latlon)
+	}
 	return lat, lon
+}
+
+// adapted from: https://gist.github.com/cdipaolo/d3f8db3848278b49db68
+// haversin(θ) function
+func hsin(theta float64) float64 {
+	return math.Pow(math.Sin(theta/2), 2)
+}
+
+// HaversineDistance returns the distance (in miles) between two points of
+//     a given longitude and latitude relatively accurately (using a spherical
+//     approximation of the Earth) through the Haversin Distance Formula for
+//     great arc distance on a sphere with accuracy for small distances
+//
+// point coordinates are supplied in degrees and converted into rad. in the func
+//
+// http://en.wikipedia.org/wiki/Haversine_formula
+func HaversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
+	// convert to radians
+	// must cast radius as float to multiply later
+	var la1, lo1, la2, lo2, r float64
+
+	piRad := math.Pi / 180
+	la1 = lat1 * piRad
+	lo1 = lon1 * piRad
+	la2 = lat2 * piRad
+	lo2 = lon2 * piRad
+
+	r = 6378100 // Earth radius in METERS
+
+	// calculate
+	h := hsin(la2-la1) + math.Cos(la1)*math.Cos(la2)*hsin(lo2-lo1)
+
+	meters := 2 * r * math.Asin(math.Sqrt(h))
+	miles := meters / 1609.344
+	return miles
 }
 
 /*
@@ -155,7 +203,7 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 			lat1, lon1 := latlon2coord(loc)
 			lat2, lon2 := latlon2coord(ipInfo[i].Loc)
 			//fmt.Printf("loc1: %v %v\nloc2: %v %v\n", lat1, lon1, lat2, lon2)
-			miles, _, _ := vincenty.VincentyDistance(vincenty.Coord{lat1, lon1}, vincenty.Coord{lat2, lon2})
+			miles := HaversineDistance(lat1, lon1, lat2, lon2)
 			distanceStr = fmt.Sprintf("%.2f", miles)
 		}
 		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc, distanceStr}
