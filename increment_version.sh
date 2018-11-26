@@ -71,7 +71,7 @@ increment_version() {
 # main...
 
 Usage() {
-	GITVER=`awk -F/ '/refs\/tags\// {print $NF}' .git/packed-refs | tail -1`
+    GITVER=`awk -F/ '/refs\/tags\// {print $NF}' .git/packed-refs | tail -1`
     echo
     echo "Current version: ${GITVER}"
     echo
