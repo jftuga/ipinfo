@@ -76,11 +76,17 @@ func main() {
         fmt.Println("version:", BuildTime)
         return
     }
-	convertedArgs := truncateArgParts(flag.Args())
+
+	localIpInfo := callRemoteService("")
+	args := flag.Args()
+	if len(flag.Args()) == 0 {
+		args = append(args,localIpInfo.Ip)
+	}
+
+	convertedArgs := truncateArgParts(args)
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
 
-	localIpInfo := callRemoteService("")
 	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
 
 	elapsed := time.Since(timeStart)
