@@ -71,8 +71,9 @@ increment_version() {
 # main...
 
 Usage() {
+	GITVER=`awk -F/ '/refs\/tags\// {print $NF}' .git/packed-refs | tail -1`
     echo
-    echo Current version: `git describe --abbrev=0`
+    echo "Current version: ${GITVER}"
     echo
     echo Usage: "$0 [ major | minor | patch ]"
     echo
@@ -101,7 +102,8 @@ case "${INC_TYPE}" in
         ;;
 esac
 
-NEW=`increment_version -l 0.1.2 ${LEFT}`
+GITVER=`awk -F/ '/refs\/tags\// {print $NF}' .git/packed-refs | tail -1`
+NEW=`increment_version -l ${GITVER} ${LEFT}`
 
 read -p "Run: git tag -a v${NEW} ; git push origin v${NEW} (y/n)? " ANS
 if [ "${ANS}" == "y" ] ; then
