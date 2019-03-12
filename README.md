@@ -3,6 +3,8 @@ Return IP address info including geographic location and distance when given IP 
 
 IP geolocation is retrieved from https://ipinfo.io/
 
+Binaries for Windows, MacOS, and Linux can be found on the [Releases Page](https://github.com/jftuga/ipinfo/releases).
+
 To install:
 
 ```
