@@ -1,8 +1,7 @@
 project_name: ipinfo
 build:
-  main: ipinfo.go
+  main: .
   binary: ipinfo
-  ldflags: -s -w -X main.BuildTime="{{.Version}}"
   env:
     - CGO_ENABLED=0
   goos:
@@ -13,14 +12,38 @@ build:
   goarch:
     - amd64
     - arm
+    - mips
+  goarm:
+      - 6
+      - 7
+  ignore:
+    - goos: freebsd
+      goarch: arm
+    - goos: freebsd
+      goarch: mips
 archive:
-        name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-        format: tar.gz
-        format_overrides:
-                - goos: windows
-                  format: zip
-        replacements:
-                darwin: macOS
-        wrap_in_directory: true
+  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
+  format: tar.gz
+  format_overrides:
+    - goos: windows
+      format: zip
+  replacements:
+      darwin: macOS
+  wrap_in_directory: true
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}--sha256_checksums.txt"
 release:
   draft: true
+nfpm:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
+  homepage:  https://github.com/jftuga/ipinfo
+  description: ipinfo, return IP address info including geographic location and distance when given IP address, email address, host name or URL
+  maintainer: https://reddit.com/u/jftuga
+  license: MIT
+  vendor: jftuga
+  formats:
+  - deb
+  - rpm
+  recommends:
+  - rpm
+
