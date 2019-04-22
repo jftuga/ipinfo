@@ -37,7 +37,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-const version = "1.0.0"
+const version = "1.1.0"
 
 // For a given DNS query, one hostname can return multiple IP addresses
 type dnsResponse struct {
@@ -67,10 +67,11 @@ retreive the IP info for each of these IP addresses, and then output the results
 func main() {
 	timeStart := time.Now()
 
-	workers := flag.Int("workers", 30, "number of simultaneous workers")
-	tableAutoMerge := flag.Bool("merge", false, "merge identical hosts")
+	workers := flag.Int("t", 30, "number of simultaneous threads")
+	tableAutoMerge := flag.Bool("m", false, "merge identical hosts")
 	versionFlag := flag.Bool("v", false, "display program version and then exit")
     externalOnlyFlag := flag.Bool("x", false, "only display your external IP and then exit")
+    wrapFlag := flag.Bool("w", false, "wrap output to better fit the screen width")
 
 	flag.Parse()
 	if *versionFlag {
@@ -92,7 +93,7 @@ func main() {
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
 
-	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge)
+	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge, *wrapFlag)
 
 	elapsed := time.Since(timeStart)
 	fmt.Println("\n")
@@ -196,7 +197,7 @@ Args:
 
 	merge: if -merge was passed in as a command line parameter
 */
-func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string, merge bool) {
+func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string, merge bool, wrap bool) {
 	var allRows [][]string
 
 	var distanceStr = ""
@@ -231,6 +232,11 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 	if merge == true {
 		table.SetAutoMergeCells(true)
 	}
+    if wrap {
+        table.SetAutoWrapText(true)
+    } else {
+        table.SetAutoWrapText(false)
+    }
 	table.AppendBulk(allRows)
 	table.Render()
 }
