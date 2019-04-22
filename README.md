@@ -11,6 +11,16 @@ To install:
 go get github.com/jftuga/ipinfo
 ```
 
+```
+Usage of ipinfo:
+  -m	merge identical hosts
+  -t int
+    	number of simultaneous threads (default 30)
+  -v	display program version and then exit
+  -w	wrap output to better fit the screen width
+  -x	only display your external IP and then exit
+```
+
 Example:
 
 ```
