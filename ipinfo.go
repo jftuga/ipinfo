@@ -37,25 +37,25 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-const version = "1.1.0"
+const version = "1.1.1"
 
 // For a given DNS query, one hostname can return multiple IP addresses
 type dnsResponse struct {
 	hostname  string
 	addresses []string
-	err	   error
+	err       error
 }
 
 // This is the format returned by: https://ipinfo.io/w.x.y.z/json
 type ipInfoResult struct {
-	Ip	   string
+	Ip       string
 	Hostname string
-	City	 string
+	City     string
 	Region   string
 	Country  string
-	Loc	  string
+	Loc      string
 	Postal   string
-	Org	  string
+	Org      string
 	Distance float32
 	ErrMsg   error
 }
@@ -70,8 +70,8 @@ func main() {
 	workers := flag.Int("t", 30, "number of simultaneous threads")
 	tableAutoMerge := flag.Bool("m", false, "merge identical hosts")
 	versionFlag := flag.Bool("v", false, "display program version and then exit")
-    externalOnlyFlag := flag.Bool("x", false, "only display your external IP and then exit")
-    wrapFlag := flag.Bool("w", false, "wrap output to better fit the screen width")
+	externalOnlyFlag := flag.Bool("x", false, "only display your external IP and then exit")
+	wrapFlag := flag.Bool("w", false, "wrap output to better fit the screen width")
 
 	flag.Parse()
 	if *versionFlag {
@@ -81,12 +81,12 @@ func main() {
 
 	localIpInfo := callRemoteService("")
 	args := flag.Args()
-    if *externalOnlyFlag {
-        fmt.Println(localIpInfo.Ip)
-        return
-    }
+	if *externalOnlyFlag {
+		fmt.Println(localIpInfo.Ip)
+		return
+	}
 	if len(flag.Args()) == 0 {
-		args = append(args,localIpInfo.Ip)
+		args = append(args, localIpInfo.Ip)
 	}
 
 	convertedArgs := truncateArgParts(args)
@@ -232,11 +232,11 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 	if merge == true {
 		table.SetAutoMergeCells(true)
 	}
-    if wrap {
-        table.SetAutoWrapText(true)
-    } else {
-        table.SetAutoWrapText(false)
-    }
+	if wrap {
+		table.SetAutoWrapText(true)
+	} else {
+		table.SetAutoWrapText(false)
+	}
 	table.AppendBulk(allRows)
 	table.Render()
 }
@@ -295,7 +295,7 @@ func runDNS(workers int, hostnames []string) ([]string, map[string]string) {
 	if len(errors) > 0 {
 		var errBuilder strings.Builder
 		for _, err := range errors {
-			errBuilder.WriteString(err.Error())
+			errBuilder.WriteString(fmt.Sprintf("%s\n", err.Error()))
 		}
 		fmt.Printf("\n%s\n\n", errBuilder.String())
 	}
@@ -366,7 +366,7 @@ func workDNS(workCh chan string, dnsResponseCh chan dnsResponse) {
 		dnsResponseCh <- dnsResponse{
 			hostname:  hostname,
 			addresses: addresses,
-			err:	   err,
+			err:       err,
 		}
 	}
 }
