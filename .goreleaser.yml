@@ -21,29 +21,16 @@ build:
       goarch: arm
     - goos: freebsd
       goarch: mips
-archive:
-  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
-  format: tar.gz
-  format_overrides:
-    - goos: windows
-      format: zip
-  replacements:
-      darwin: macOS
-  wrap_in_directory: true
+archives:
+   - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
+     format: tar.xz
+     format_overrides:
+       - goos: windows
+         format: zip
+     replacements:
+         darwin: macOS
+     wrap_in_directory: true
 checksum:
   name_template: "{{ .ProjectName }}_{{ .Version }}--sha256_checksums.txt"
 release:
   draft: true
-nfpm:
-  name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
-  homepage:  https://github.com/jftuga/ipinfo
-  description: ipinfo, return IP address info including geographic location and distance when given IP address, email address, host name or URL
-  maintainer: https://reddit.com/u/jftuga
-  license: MIT
-  vendor: jftuga
-  formats:
-  - deb
-  - rpm
-  recommends:
-  - rpm
-
