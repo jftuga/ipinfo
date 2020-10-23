@@ -37,7 +37,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-const version = "1.1.1"
+const version = "1.1.2"
 
 // For a given DNS query, one hostname can return multiple IP addresses
 type dnsResponse struct {
