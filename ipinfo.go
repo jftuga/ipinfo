@@ -29,6 +29,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -37,7 +38,8 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-const version = "1.1.2"
+const pgmVersion string = "1.1.3"
+const pgmUrl string = "https://github.com/jftuga/ipinfo"
 
 // For a given DNS query, one hostname can return multiple IP addresses
 type dnsResponse struct {
@@ -75,7 +77,8 @@ func main() {
 
 	flag.Parse()
 	if *versionFlag {
-		fmt.Println("version:", version)
+		fmt.Println("version:", pgmVersion)
+		fmt.Println(pgmUrl)
 		return
 	}
 
@@ -112,15 +115,24 @@ Returns:
 	the same slice with entries shortened to just hostname or IP address
 */
 func truncateArgParts(rawArgs []string) []string {
+	v4re := regexp.MustCompile(`(?:[0-9]{1,3}\.){3}[0-9]{1,3}`)
 	truncateArgs := []string{}
 	for entry := range rawArgs {
 		if strings.Contains(rawArgs[entry], "://") { // url
 			slots := strings.SplitN(rawArgs[entry], "/", 4)
 			truncateArgs = append(truncateArgs, slots[2])
+			continue
 		} else if strings.Contains(rawArgs[entry], "@") { // email
 			slots := strings.SplitN(rawArgs[entry], "@", 2)
 			truncateArgs = append(truncateArgs, slots[1])
-		} else { // just a host name or IP address
+			continue
+		} else { // either a host name or IP address
+			if v4re.Match([]byte(rawArgs[entry])) && strings.Contains(rawArgs[entry],":") {
+				// v4 address with port
+				c := strings.Index(rawArgs[entry],":")
+				truncateArgs = append(truncateArgs, rawArgs[entry][0:c])
+				continue
+			}
 			truncateArgs = append(truncateArgs, rawArgs[entry])
 		}
 	}
