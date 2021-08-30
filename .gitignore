@@ -5,3 +5,4 @@ dist
 ipinfo.exe
 ipinfo
 .goreleaser.yml
+.idea/
