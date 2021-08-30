@@ -12,6 +12,7 @@ build:
   goarch:
     - amd64
     - arm
+    - arm64
     - mips
   goarm:
       - 6
@@ -20,7 +21,21 @@ build:
     - goos: freebsd
       goarch: arm
     - goos: freebsd
+      goarch: arm64
+    - goos: freebsd
       goarch: mips
+    - goos: linux
+      goarch: arm64
+    - goos: windows
+      goarch: arm
+      goarm: 7
+    - goos: windows
+      goarch: arm
+      goarm: 6
+    - goos: windows
+      goarch: arm64
+
+
 archives:
    - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
      format: tar.xz
