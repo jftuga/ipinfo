@@ -1,15 +1,9 @@
 # ipinfo
 Return IP address info including geographic location and distance when given IP address, email address, host name or URL
 
-IP geolocation is retrieved from https://ipinfo.io/
+IP geolocation is retrieved from https://ipinfo.io/ who allows for 1000 unauthenticated API calls per day.
 
-Binaries for Windows, MacOS, and Linux can be found on the [Releases Page](https://github.com/jftuga/ipinfo/releases).
-
-To install:
-
-```
-go get github.com/jftuga/ipinfo
-```
+## Usage
 
 ```
 Usage of ipinfo:
@@ -21,7 +15,12 @@ Usage of ipinfo:
   -x	only display your external IP and then exit
 ```
 
-Example:
+## Installation
+
+* macOS: `brew update; brew install jftuga/tap/ipinfo`
+* Binaries for Linux, macOS and Windows are provided in the [releases](https://github.com/jftuga/ipinfo/releases) section.
+
+## Examples
 
 ```
 macbook:ipinfo jftuga$ ./ipinfo amazon.com https://cisco.com user@github.com
@@ -42,6 +41,3 @@ your IP addr : w.x.y.z
 your location: A,B
 elapsed time : 450.60ms
 ```
-
-Code discussion: https://old.reddit.com/r/golang/comments/9xd3a3/i_just_finished_my_first_go_program_ipinfo/
-
