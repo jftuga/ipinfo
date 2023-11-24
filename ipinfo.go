@@ -38,7 +38,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-const pgmVersion string = "1.1.3"
+const pgmVersion string = "1.1.4"
 const pgmUrl string = "https://github.com/jftuga/ipinfo"
 
 // For a given DNS query, one hostname can return multiple IP addresses
@@ -109,9 +109,11 @@ func main() {
 truncateArgParts will truncate a URL or email address to just the hostname
 
 Args:
+
 	rawArgs: a slice of entries that can be any of the following: URL, email, hostname, IP address
 
 Returns:
+
 	the same slice with entries shortened to just hostname or IP address
 */
 func truncateArgParts(rawArgs []string) []string {
@@ -127,9 +129,9 @@ func truncateArgParts(rawArgs []string) []string {
 			truncateArgs = append(truncateArgs, slots[1])
 			continue
 		} else { // either a host name or IP address
-			if v4re.Match([]byte(rawArgs[entry])) && strings.Contains(rawArgs[entry],":") {
+			if v4re.Match([]byte(rawArgs[entry])) && strings.Contains(rawArgs[entry], ":") {
 				// v4 address with port
-				c := strings.Index(rawArgs[entry],":")
+				c := strings.Index(rawArgs[entry], ":")
 				truncateArgs = append(truncateArgs, rawArgs[entry][0:c])
 				continue
 			}
@@ -143,9 +145,11 @@ func truncateArgParts(rawArgs []string) []string {
 latlon2coord converts a string such as "36.0525,-79.107" to a tuple of floats
 
 Args:
+
 	latlon: a string in "lat, lon" format
 
 Returns:
+
 	a tuple in (float64, float64) format
 */
 func latlon2coord(latlon string) (float64, float64) {
@@ -168,9 +172,10 @@ func hsin(theta float64) float64 {
 }
 
 // HaversineDistance returns the distance (in miles) between two points of
-//	 a given longitude and latitude relatively accurately (using a spherical
-//	 approximation of the Earth) through the Haversin Distance Formula for
-//	 great arc distance on a sphere with accuracy for small distances
+//
+//	a given longitude and latitude relatively accurately (using a spherical
+//	approximation of the Earth) through the Haversin Distance Formula for
+//	great arc distance on a sphere with accuracy for small distances
 //
 // point coordinates are supplied in degrees and converted into rad. in the func
 //
@@ -201,6 +206,7 @@ outputTable outputs a table with IP info for each command line arg
 It also computes the distance from the local IP address to the remote IP address
 
 Args:
+
 	ipInfo: a slice of ipInfoResult stucts containing the IP info metadata for each command line argument
 
 	reverseIP: a map where key=IP address, value=hostname
@@ -258,11 +264,13 @@ stringInSlice checks to see if a string is located in the given slice
 See also: https://stackoverflow.com/a/15323988/452281
 
 Args:
+
 	a: the string to search for
 
 	list: a slice of strings
 
 Returns:
+
 	true if a is in list, false otherwise
 */
 func stringInSlice(a string, list []string) bool {
@@ -279,11 +287,13 @@ runDNS will use N number of workers to concurrently query a DNS server for all
 entries in the hostnames slice
 
 Args:
+
 	workers: the number of threads to use
 
 	hostnames: a slice containing the hostnames to look up
 
 Returns:
+
 	a slice containing IP addresses for all hostnames
 	a map with key=ip, value=hostname
 */
@@ -319,11 +329,13 @@ resolveAllDNS returns a slice containing all IP addresses for each given hostnam
 The concurrency is limited by the workers values
 
 Args:
+
 	workers: the number of concurrent go routines to execute
 
 	hostnames: a slice containing all hostnames (or IP addresses)
 
 Returns:
+
 	a slice containing the IP info for each given IP address
 */
 func resolveAllDNS(workers int, hostnames []string) ([]dnsResponse, []error) {
@@ -368,6 +380,7 @@ func resolveAllDNS(workers int, hostnames []string) ([]dnsResponse, []error) {
 workDNS
 
 Args:
+
 	workCh:
 
 	dnsResponseCh:
@@ -388,11 +401,13 @@ resolveAllIpInfo returns a slice containing all IP info for each IP given in ipA
 The concurrency is limited by the workers values
 
 Args:
+
 	workers: the number of concurrent go routines to execute
 
 	ipAddrs: a slice of IP addresses
 
 Returns:
+
 	a slice containing the IP info for each given IP address
 */
 func resolveAllIpInfo(workers int, ipAddrs []string) []ipInfoResult {
@@ -434,9 +449,11 @@ func resolveAllIpInfo(workers int, ipAddrs []string) []ipInfoResult {
 callRemoteService issues a web query to ipinfo.io
 The JSON result is converted to an ipInfoResult struct
 Args:
+
 	ip: an IPv4 address
 
 Returns:
+
 	an ipInfoResult struct containing the information returned by the service
 */
 func callRemoteService(ip string) ipInfoResult {
@@ -474,6 +491,7 @@ func callRemoteService(ip string) ipInfoResult {
 workIpInfoLookup
 
 Args:
+
 	workCh:
 
 	resultCh:

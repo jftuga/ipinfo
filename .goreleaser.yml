@@ -1,51 +1,82 @@
-project_name: ipinfo
-build:
-  main: .
-  binary: ipinfo
-  env:
-    - CGO_ENABLED=0
-  goos:
-    - darwin
-    - linux
-    - windows
-    - freebsd
-  goarch:
-    - amd64
-    - arm
-    - arm64
-    - mips
-  goarm:
-      - 6
-      - 7
-  ignore:
-    - goos: freebsd
-      goarch: arm
-    - goos: freebsd
-      goarch: arm64
-    - goos: freebsd
-      goarch: mips
-    - goos: linux
-      goarch: arm64
-    - goos: windows
-      goarch: arm
-      goarm: 7
-    - goos: windows
-      goarch: arm
-      goarm: 6
-    - goos: windows
-      goarch: arm64
+before:
+  hooks:
+    - go mod tidy
 
+builds:
+  - id: ipinfo-id1
+    binary: ipinfo
+    ldflags:
+      - -extldflags "-static" -s -w -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -X main.Version={{.Version}} -X main.Revision={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - freebsd
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+      - arm
+      - ppc64le
+    goarm:
+      - "7"
+    ignore:
+      - goos: freebsd
+        goarch: arm64
+      - goos: freebsd
+        goarch: arm
+      - goos: freebsd
+        goarch: ppc64le
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: ppc64le
+
+  - id: ipinfo-id2
+    binary: ipinfo
+    ldflags:
+      - -extldflags "-static" -s -w -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser -X main.Version={{.Version}} -X main.Revision={{.ShortCommit}}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - amd64
+    hooks:
+      post:
+        - upx -9 "{{ .Path }}"
 
 archives:
-   - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ .Arm }}"
-     format: tar.xz
-     format_overrides:
-       - goos: windows
-         format: zip
-     replacements:
-         darwin: macOS
-     wrap_in_directory: true
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.xz
+    format_overrides:
+      - goos: windows
+        format: zip
+    wrap_in_directory: true
+    files:
+      - LICENSE
+      - README.md
+
 checksum:
-  name_template: "{{ .ProjectName }}_{{ .Version }}--sha256_checksums.txt"
+  name_template: "{{ .ProjectName }}_{{ .Version }}--checksums.txt"
 release:
-  draft: true
+  draft: false
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+brews:
+  - name: ipinfo
+    repository:
+      owner: jftuga
+      name: homebrew-tap
+    commit_author:
+      name: jftuga
+      email: jftuga@users.noreply.github.com
+    homepage: https://github.com/jftuga/ipinfo
+    description: "Return IP address info including geographic location and distance when given IP address, email address, host name or URL "
+    test: system "#{bin}/ipinfo -v"
+    install: bin.install "ipinfo"
