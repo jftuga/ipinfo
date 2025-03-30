@@ -26,19 +26,43 @@ Usage of ipinfo:
 ```
 macbook:ipinfo jftuga$ ./ipinfo amazon.com https://cisco.com user@github.com
 
-+------------+-----------------+-----------------------------------------------+---------------------------+---------------+------------+---------+-------------------+----------+
-|   INPUT    |       IP        |                   HOSTNAME                    |            ORG            |     CITY      |   REGION   | COUNTRY |        LOC        | DISTANCE |
-+------------+-----------------+-----------------------------------------------+---------------------------+---------------+------------+---------+-------------------+----------+
-| amazon.com | 176.32.98.166   |                                               | AS16509 Amazon.com, Inc.  | Ashburn       | Virginia   | US      | 39.0481,-77.4728  |   483.66 |
-| amazon.com | 176.32.103.205  |                                               | AS16509 Amazon.com, Inc.  | Ashburn       | Virginia   | US      | 39.0481,-77.4728  |   483.66 |
-| amazon.com | 205.251.242.103 | s3-console-us-standard.console.aws.amazon.com | AS16509 Amazon.com, Inc.  | Ashburn       | Virginia   | US      | 39.0481,-77.4728  |   483.66 |
-| cisco.com  | 72.163.4.185    | redirect-ns.cisco.com                         | AS109 Cisco Systems, Inc. | Richardson    | Texas      | US      | 32.9462,-96.7058  |   769.31 |
-| github.com | 192.30.253.113  | lb-192-30-253-113-iad.github.com              | AS36459 GitHub, Inc.      | San Francisco | California | US      | 37.7697,-122.3930 |  2186.72 |
-| github.com | 192.30.253.112  | lb-192-30-253-112-iad.github.com              | AS36459 GitHub, Inc.      | San Francisco | California | US      | 37.7697,-122.3930 |  2186.72 |
-+------------+-----------------+-----------------------------------------------+---------------------------+---------------+------------+---------+-------------------+----------+
++-----------------+-----------------------------------------------+---------------------+----------+--------+
+|    INPUT/IP     |                 HOSTNAME/ORG                  | CITY/REGION/COUNTRY | LAT/LON  |  DIST  |
++-----------------+-----------------------------------------------+---------------------+----------+--------+
+| amazon.com      | s3-console-us-standard.console.aws.amazon.com | Ashburn             |  39.0437 | 482.55 |
+| 205.251.242.103 | AS16509 Amazon.com, Inc.                      | Virginia            | -77.4875 |        |
+|                 |                                               | US                  |          |        |
+| amazon.com      |                                               | Ashburn             |  39.0437 | 482.55 |
+| 52.94.236.248   | AS16509 Amazon.com, Inc.                      | Virginia            | -77.4875 |        |
+|                 |                                               | US                  |          |        |
+| amazon.com      |                                               | Ashburn             |  39.0437 | 482.55 |
+| 54.239.28.85    | AS16509 Amazon.com, Inc.                      | Virginia            | -77.4875 |        |
+|                 |                                               | US                  |          |        |
+| cisco.com       | redirect-ns.cisco.com                         | Richardson          |  32.9482 | 770.84 |
+| 72.163.4.185    | AS109 CISCO SYSTEMS, INC.                     | Texas               | -96.7297 |        |
+|                 |                                               | US                  |          |        |
+| github.com      | lb-140-82-112-4-iad.github.com                | South Riding        |  38.9209 | 475.94 |
+| 140.82.112.4    | AS36459 GitHub, Inc.                          | Virginia            | -77.5039 |        |
+|                 |                                               | US                  |          |        |
++-----------------+-----------------------------------------------+---------------------+----------+--------+
 
+your IP addr : *redacted*
+your location: *redacted*
+elapsed time : 450.60ms
 
-your IP addr : w.x.y.z
-your location: A,B
+macbook:ipinfo jftuga$ ./ipinfo -1 amazon.com https://cisco.com user@github.com
+
++------------+-----------------+-----------------------------------------------+---------------------------+--------------+----------+---------+------------------+--------+
+|   INPUT    |       IP        |                   HOSTNAME                    |            ORG            |     CITY     |  REGION  | COUNTRY |     LAT/LON      |  DIST  |
++------------+-----------------+-----------------------------------------------+---------------------------+--------------+----------+---------+------------------+--------+
+| amazon.com | 205.251.242.103 | s3-console-us-standard.console.aws.amazon.com | AS16509 Amazon.com, Inc.  | Ashburn      | Virginia | US      | 39.0437,-77.4875 | 482.55 |
+| amazon.com | 52.94.236.248   |                                               | AS16509 Amazon.com, Inc.  | Ashburn      | Virginia | US      | 39.0437,-77.4875 | 482.55 |
+| amazon.com | 54.239.28.85    |                                               | AS16509 Amazon.com, Inc.  | Ashburn      | Virginia | US      | 39.0437,-77.4875 | 482.55 |
+| cisco.com  | 72.163.4.185    | redirect-ns.cisco.com                         | AS109 CISCO SYSTEMS, INC. | Richardson   | Texas    | US      | 32.9482,-96.7297 | 770.84 |
+| github.com | 140.82.113.3    | lb-140-82-113-3-iad.github.com                | AS36459 GitHub, Inc.      | South Riding | Virginia | US      | 38.9209,-77.5039 | 475.94 |
++------------+-----------------+-----------------------------------------------+---------------------------+--------------+----------+---------+------------------+--------+
+
+your IP addr : *redacted*
+your location: *redacted*
 elapsed time : 450.60ms
 ```
