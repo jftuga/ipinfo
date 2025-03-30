@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
     - go mod tidy
@@ -73,6 +75,7 @@ brews:
     repository:
       owner: jftuga
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TOKEN }}"
     commit_author:
       name: jftuga
       email: jftuga@users.noreply.github.com
