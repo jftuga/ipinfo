@@ -38,7 +38,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-const pgmVersion string = "1.1.4"
+const pgmVersion string = "1.2.0"
 const pgmUrl string = "https://github.com/jftuga/ipinfo"
 
 // For a given DNS query, one hostname can return multiple IP addresses
@@ -74,6 +74,7 @@ func main() {
 	versionFlag := flag.Bool("v", false, "display program version and then exit")
 	externalOnlyFlag := flag.Bool("x", false, "only display your external IP and then exit")
 	wrapFlag := flag.Bool("w", false, "wrap output to better fit the screen width")
+	oneRowFlag := flag.Bool("1", false, "display each entry on one row only")
 
 	flag.Parse()
 	if *versionFlag {
@@ -96,7 +97,7 @@ func main() {
 	ipAddrs, reverseIP := runDNS(*workers, convertedArgs)
 	ipInfo := resolveAllIpInfo(*workers, ipAddrs)
 
-	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge, *wrapFlag)
+	outputTable(ipInfo, reverseIP, localIpInfo.Loc, *tableAutoMerge, *wrapFlag, *oneRowFlag)
 
 	elapsed := time.Since(timeStart)
 	fmt.Println("\n")
@@ -214,11 +215,16 @@ Args:
 	loc: the local IP addresses location in this format: "lat, lon"
 
 	merge: if -merge was passed in as a command line parameter
+
+	wrap: wrap long lines
+
+	oneRow: display each entry on one row only
 */
-func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string, merge bool, wrap bool) {
+func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string, merge, wrap, oneRow bool) {
 	var allRows [][]string
 
 	var distanceStr = ""
+	var row []string
 
 	for i, _ := range ipInfo {
 		if strings.Contains(ipInfo[i].Ip, ":") { // skip IPv6
@@ -236,7 +242,12 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 			miles := HaversineDistance(lat1, lon1, lat2, lon2)
 			distanceStr = fmt.Sprintf("%.2f", miles)
 		}
-		row := []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc, distanceStr}
+		loc := strings.Split(ipInfo[i].Loc, ",")
+		if oneRow {
+			row = []string{reverseIP[ipInfo[i].Ip], ipInfo[i].Ip, ipInfo[i].Hostname, ipInfo[i].Org, ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country, ipInfo[i].Loc, distanceStr}
+		} else {
+			row = []string{fmt.Sprintf("%v\n%v", reverseIP[ipInfo[i].Ip], ipInfo[i].Ip), fmt.Sprintf("%v\n%v", ipInfo[i].Hostname, ipInfo[i].Org), fmt.Sprintf("%v\n%v\n%v", ipInfo[i].City, ipInfo[i].Region, ipInfo[i].Country), fmt.Sprintf("%v\n%v", loc[0], loc[1]), distanceStr}
+		}
 		allRows = append(allRows, row)
 	}
 
@@ -246,7 +257,11 @@ func outputTable(ipInfo []ipInfoResult, reverseIP map[string]string, loc string,
 	})
 
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Loc", "Distance"})
+	if oneRow {
+		table.SetHeader([]string{"Input", "IP", "Hostname", "Org", "City", "Region", "Country", "Lat/Lon", "Dist"})
+	} else {
+		table.SetHeader([]string{"Input/IP", "Hostname/Org", "City/Region/Country", "Lat/Lon", "Dist"})
+	}
 	if merge == true {
 		table.SetAutoMergeCells(true)
 	}

@@ -7,6 +7,7 @@ IP geolocation is retrieved from https://ipinfo.io/ who allows for 1000 unauthen
 
 ```
 Usage of ipinfo:
+  -1	display each entry on one row
   -m	merge identical hosts
   -t int
     	number of simultaneous threads (default 30)
